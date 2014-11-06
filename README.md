@@ -1,4 +1,4 @@
 ExModbus
 ========
 
-** TODO: Add description **
+An Elixir ModbusTCP client implementation.

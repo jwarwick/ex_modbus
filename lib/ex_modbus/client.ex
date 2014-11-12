@@ -19,6 +19,11 @@ defmodule ExModbus.Client do
     GenServer.call(pid, {:read_holding_registers, %{unit_id: unit_id, start_address: start_address, count: count}})
   end
 
+  def generic_call(pid, unit_id, {call, address, count, transform}) do
+    %{data: data} = GenServer.call(pid, {call, %{unit_id: unit_id, start_address: address, count: count}})
+    transform.(data)
+  end
+
   # GenServer Callbacks
 
   def init(%{ip: ip}) do

@@ -15,8 +15,8 @@ defmodule ExModbus.Client do
     GenServer.start_link(__MODULE__, args)
   end
 
-  def read_data(pid, start_address, count) do
-    GenServer.call(pid, {:read_holding_registers, %{start_address: start_address, count: count}})
+  def read_data(pid, unit_id, start_address, count) do
+    GenServer.call(pid, {:read_holding_registers, %{unit_id: unit_id, start_address: start_address, count: count}})
   end
 
   # GenServer Callbacks
@@ -26,14 +26,16 @@ defmodule ExModbus.Client do
     {:ok, socket}
   end
 
-  def handle_call({:read_holding_registers, %{start_address: address, count: count}}, _from, socket) do
-    msg = Modbus.Packet.read_holding_registers(address, count) |> Modbus.Tcp.wrap_packet
+  def handle_call({:read_holding_registers, %{unit_id: unit_id, start_address: address, count: count}}, _from, socket) do
+    msg = Modbus.Packet.read_holding_registers(address, count) |> Modbus.Tcp.wrap_packet(unit_id)
     Logger.debug "Packet: #{inspect msg}"
     :ok = :gen_tcp.send(socket, msg)
     {:ok, packet} = :gen_tcp.recv(socket, 0, @read_timeout)
     # XXX - handle {:error, closed} and try to reconnect
     Logger.debug "Response: #{inspect packet}"
-    {:reply, "data", socket}
+    unwrapped = Modbus.Tcp.unwrap(packet)
+    {:ok, data} = Modbus.Packet.parse_response_packet(unwrapped.packet)
+    {:reply, %{unit_id: unwrapped.unit_id, transaction_id: unwrapped.transaction_id, data: data}, socket}
   end
   def handle_call(msg, _from, state) do
     Logger.debug "Unknown handle_cast msg: #{inspect msg}"

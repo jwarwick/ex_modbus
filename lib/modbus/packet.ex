@@ -11,13 +11,13 @@ defmodule Modbus.Packet do
 
   defmacrop read_multiple(function_code, starting_address, count) do
     quote do
-      <<unquote(function_code), (unquote(starting_address)-1)::size(16)-big, unquote(count)::size(16)-big>>
+      <<unquote(function_code), (unquote(starting_address))::size(16)-big, unquote(count)::size(16)-big>>
     end
   end
 
   @doc """
   Read status from a contiguous range of coils.
-  `starting_address` is 1-indexed.
+  `starting_address` is 0-indexed.
   """
   def read_coils(starting_address, count) do
     read_multiple(@read_coils, starting_address, count)
@@ -25,7 +25,7 @@ defmodule Modbus.Packet do
 
   @doc """
   Read status from a contiguous range of discrete inputs.
-  `starting_address` is 1-indexed.
+  `starting_address` is 0-indexed.
   """
   def read_discrete_inputs(starting_address, count) do
     read_multiple(@read_discrete_inputs, starting_address, count)
@@ -33,7 +33,7 @@ defmodule Modbus.Packet do
 
   @doc """
   Read the contents of a contiguous block of holding registers.
-  `starting_address` is 1-indexed.
+  `starting_address` is 0-indexed.
   """
   def read_holding_registers(starting_address, count) do
     read_multiple(@read_holding_registers, starting_address, count)
@@ -41,12 +41,10 @@ defmodule Modbus.Packet do
 
   @doc """
   Read the contents of a contiguous block of input registers.
-  `start_address` is 1-indexed.
+  `start_address` is 0-indexed.
   """
   def read_input_registers(starting_address, count) do
     read_multiple(@read_input_registers, starting_address, count)
   end
-
-  
 end
 

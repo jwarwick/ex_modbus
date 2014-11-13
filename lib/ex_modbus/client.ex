@@ -20,7 +20,7 @@ defmodule ExModbus.Client do
   end
 
   def generic_call(pid, unit_id, {call, address, count, transform}) do
-    %{data: data} = GenServer.call(pid, {call, %{unit_id: unit_id, start_address: address, count: count}})
+    %{data: {_type, data}} = GenServer.call(pid, {call, %{unit_id: unit_id, start_address: address, count: count}})
     transform.(data)
   end
 
@@ -38,7 +38,7 @@ defmodule ExModbus.Client do
     {:ok, packet} = :gen_tcp.recv(socket, 0, @read_timeout)
     # XXX - handle {:error, closed} and try to reconnect
     Logger.debug "Response: #{inspect packet}"
-    unwrapped = Modbus.Tcp.unwrap(packet)
+    unwrapped = Modbus.Tcp.unwrap_packet(packet)
     {:ok, data} = Modbus.Packet.parse_response_packet(unwrapped.packet)
     {:reply, %{unit_id: unwrapped.unit_id, transaction_id: unwrapped.transaction_id, data: data}, socket}
   end

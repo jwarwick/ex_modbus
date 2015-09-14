@@ -17,8 +17,14 @@ defmodule PacketTest do
     assert Modbus.Packet.read_input_registers(8, 1) == <<0x04, 0x0008::size(16), 0x0001::size(16)>>
   end
 
+  test "write single coil" do
+    assert Modbus.Packet.write_single_coil(5, :on)  == <<0x05, 0x0005::size(16), 0xff, 0x00>>
+    assert Modbus.Packet.write_single_coil(3, :off) == <<0x05, 0x0003::size(16), 0x00, 0x00>>
+  end
+
   test "exception response" do
     assert {:ok, {:read_holding_registers_exception, :illegal_data_address}} == Modbus.Packet.parse_response_packet(<<131, 2>>)
+    assert {:ok, {:write_single_coil_exception, :illegal_data_address}} == Modbus.Packet.parse_response_packet(<<133, 2>>)
   end
 
   test "read holding registers response" do
@@ -26,7 +32,7 @@ defmodule PacketTest do
   end
 
   test "read multiple holding registers response" do
-    assert {:ok, {:read_holding_registers, [2, 13313]}} == 
+    assert {:ok, {:read_holding_registers, [2, 13313]}} ==
       Modbus.Packet.parse_response_packet(<<3, 2, 0, 2, 52, 1>>)
   end
 end

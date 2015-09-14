@@ -10,6 +10,15 @@ defmodule Modbus.Packet do
   @read_holding_registers_exception 0x83
   @read_input_registers             0x04
 
+  @write_single_coil                0x05
+  @write_single_coil_exception      0x85
+  @write_single_register            0x06
+  @write_multiple_coils             0x0f
+  @write_multiple_registers         0x10
+
+  @single_coil_off                  0x0000
+  @single_coil_on                   0xff00
+
   # Exception codes
   exception_codes = [
     {0x01, :illegal_function},
@@ -30,7 +39,13 @@ defmodule Modbus.Packet do
 
   defmacrop read_multiple(function_code, starting_address, count) do
     quote do
-      <<unquote(function_code), (unquote(starting_address))::size(16)-big, unquote(count)::size(16)-big>>
+      <<unquote(function_code), unquote(starting_address)::size(16)-big, unquote(count)::size(16)-big>>
+    end
+  end
+
+  defmacrop write_single(function_code, starting_address, data) do
+    quote do
+      <<unquote(function_code), unquote(starting_address)::size(16)-big, unquote(data)::size(16)-big>>
     end
   end
 
@@ -67,18 +82,45 @@ defmodule Modbus.Packet do
   end
 
   @doc """
+  Write a single coil. Possible values are `:on` and `:off`
+  """
+  def write_single_coil(starting_address, status) do
+    case status do
+      :on   -> write_single(@write_single_coil, starting_address, @single_coil_on)
+      :off  -> write_single(@write_single_coil, starting_address, @single_coil_off)
+    end
+  end
+
+  @doc """
   Parse a ModbusTCP response packet
   """
   def parse_response_packet(<<@read_holding_registers, _byte_count, data::binary>>) do
     value_list = for <<value::size(16)-big <- data>>, do: value
     {:ok, {:read_holding_registers, value_list}}
   end
+
   def parse_response_packet(<<@read_holding_registers_exception, exception>>) do
     {:ok, {:read_holding_registers_exception, exception_code(exception)}}
   end
+
+  def parse_response_packet(<<@read_coils, 0x1, data::binary>>) do
+    {:ok, {:read_coils, data}}
+  end
+
+  def parse_response_packet(<<@write_single_coil, _::size(16), data::size(16)>>) do
+    state = case data do
+      @single_coil_on  -> :on
+      @single_coil_off -> :off
+    end
+    {:ok, {:write_single_coil, state}}
+  end
+
+  def parse_response_packet(<<@write_single_coil_exception, exception>>) do
+    {:ok, {:write_single_coil_exception, exception_code(exception)}}
+  end
+
   def parse_response_packet(packet = <<function_code, _byte_count, _data::binary>>) do
     {:error, "Unknown function code #{function_code}, pkt = #{inspect packet}"}
   end
 
 end
-

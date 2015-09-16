@@ -44,20 +44,31 @@ defmodule ExModbus.Client do
   end
 
   def handle_call({:read_coils, %{unit_id: unit_id, start_address: address, count: count}}, _from, socket) do
-    msg = Modbus.Packet.read_coils(address, count) |> Modbus.Tcp.wrap_packet(unit_id)
-    response = send_and_rcv_packet(socket, msg)
+    # limits the number of coils returned to the number `count` from the request
+    limit_to_count = fn msg ->
+                        {:read_coils, lst} = msg.data
+                        {_, elems} = Enum.split(lst, -count)
+                        %{msg | data: {:read_coils, elems}}
+    end
+    response = Modbus.Packet.read_coils(address, count)
+               |> Modbus.Tcp.wrap_packet(unit_id)
+               |> send_and_rcv_packet(socket)
+               |> limit_to_count.()
+
     {:reply, response, socket}
   end
 
   def handle_call({:read_holding_registers, %{unit_id: unit_id, start_address: address, count: count}}, _from, socket) do
-    msg = Modbus.Packet.read_holding_registers(address, count) |> Modbus.Tcp.wrap_packet(unit_id)
-    response = send_and_rcv_packet(socket, msg)
+    response = Modbus.Packet.read_holding_registers(address, count)
+               |> Modbus.Tcp.wrap_packet(unit_id)
+               |> send_and_rcv_packet(socket)
     {:reply, response, socket}
   end
 
   def handle_call({:write_single_coil, %{unit_id: unit_id, start_address: address, state: state}}, _from, socket) do
-    msg = Modbus.Packet.write_single_coil(address, state) |> Modbus.Tcp.wrap_packet(unit_id)
-    response = send_and_rcv_packet(socket, msg)
+    response = Modbus.Packet.write_single_coil(address, state)
+               |> Modbus.Tcp.wrap_packet(unit_id)
+               |> send_and_rcv_packet(socket)
     {:reply, response, socket}
   end
 
@@ -66,7 +77,7 @@ defmodule ExModbus.Client do
     {:reply, "unknown call message", state}
   end
 
-  defp send_and_rcv_packet(socket, msg) do
+  defp send_and_rcv_packet(msg, socket) do
     Logger.debug "Packet: #{inspect msg}"
     :ok = :gen_tcp.send(socket, msg)
     {:ok, packet} = :gen_tcp.recv(socket, 0, @read_timeout)

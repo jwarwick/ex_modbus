@@ -5,6 +5,7 @@ defmodule Modbus.Packet do
 
   # Function Codes
   @read_coils                       0x01
+  @read_coils_exception             0x81
   @read_discrete_inputs             0x02
   @read_holding_registers           0x03
   @read_holding_registers_exception 0x83
@@ -104,7 +105,14 @@ defmodule Modbus.Packet do
   end
 
   def parse_response_packet(<<@read_coils, 0x1, data::binary>>) do
-    {:ok, {:read_coils, data}}
+    status_list = for <<value::size(1) <- data>> do
+      if value == 1, do: :on, else: :off
+    end
+    {:ok, {:read_coils, status_list}}
+  end
+
+  def parse_response_packet(<<@read_coils_exception, exception>>) do
+    {:ok, {:read_coils_exception, exception_code(exception)}}
   end
 
   def parse_response_packet(<<@write_single_coil, _::size(16), data::size(16)>>) do

@@ -73,16 +73,16 @@ defmodule ExModbus.Client do
   end
 
   def handle_call(msg, _from, state) do
-    Logger.debug "Unknown handle_cast msg: #{inspect msg}"
+    Logger.info "Unknown handle_cast msg: #{inspect msg}"
     {:reply, "unknown call message", state}
   end
 
   defp send_and_rcv_packet(msg, socket) do
-    Logger.debug "Packet: #{inspect msg}"
+    #Logger.debug "Packet: #{inspect msg}"
     :ok = :gen_tcp.send(socket, msg)
     {:ok, packet} = :gen_tcp.recv(socket, 0, @read_timeout)
     # XXX - handle {:error, closed} and try to reconnect
-    Logger.debug "Response: #{inspect packet}"
+    #Logger.debug "Response: #{inspect packet}"
     unwrapped = Modbus.Tcp.unwrap_packet(packet)
     {:ok, data} = Modbus.Packet.parse_response_packet(unwrapped.packet)
     %{unit_id: unwrapped.unit_id, transaction_id: unwrapped.transaction_id, data: data}

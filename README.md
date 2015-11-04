@@ -21,4 +21,7 @@ An Elixir ModbusTCP client implementation.
   10:13:37.038 [debug] Response: <<0, 1, 0, 0, 0, 15, 1, 3, 12, 7, 212, 0, 11, 0, 29, 0, 0, 0, 52, 0, 7>>
   {{2004, 11, 29}, {0, 52, 7}}
 ```
+## License
+
+See the [LICENSE](LICENSE.md) file for license rights and limitations (MIT).
 
